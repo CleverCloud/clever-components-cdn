@@ -1,0 +1,22 @@
+{
+  "name": "@clevercloud/components-cdn",
+  "version": "0.0.1",
+  "description": "Small endpoint to serve Clever Cloud components dynamicly.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CleverCloud/clever-components-cdn.git"
+  },
+  "scripts": {
+    "test": "web-test-runner \"test/**/*.test.js\" --node-resolve",
+    "test:watch": "web-test-runner \"test/**/*.test.js\" --node-resolve --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@esm-bundle/chai": "^4.1.5",
+    "@web/test-runner": "^0.10.0",
+    "es-semver": "^1.0.1",
+    "nodemon": "^2.0.6"
+  }
+}
