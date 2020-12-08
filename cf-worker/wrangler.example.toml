@@ -1,0 +1,6 @@
+name = "components-load"
+type = "webpack"
+account_id = ""
+workers_dev = true
+route = "components.clever-cloud.com/load.js*"
+zone_id = ""

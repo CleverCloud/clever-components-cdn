@@ -1,1 +1,3 @@
+cf-worker/wrangler.toml
+cf-worker/dist
 node_modules

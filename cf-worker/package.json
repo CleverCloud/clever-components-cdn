@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "cf-worker",
+  "main": "index.js",
+  "author": "Hubert SABLONNIÈRE <hubert.sablonniere@gmail.com>",
+  "license": "MIT"
+}
