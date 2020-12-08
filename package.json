@@ -9,10 +9,15 @@
     "url": "https://github.com/CleverCloud/clever-components-cdn.git"
   },
   "scripts": {
+    "start": "node src/start-server.js",
+    "start:dev": "nodemon src/start-server.js",
     "test": "web-test-runner \"test/**/*.test.js\" --node-resolve",
     "test:watch": "web-test-runner \"test/**/*.test.js\" --node-resolve --watch"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@hapi/hapi": "^20.0.3",
+    "superagent": "^6.1.0"
+  },
   "devDependencies": {
     "@esm-bundle/chai": "^4.1.5",
     "@web/test-runner": "^0.10.0",
