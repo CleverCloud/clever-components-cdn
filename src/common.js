@@ -15,7 +15,10 @@ export function getFile (path, origin) {
   return fetch(new URL(path, origin).toString())
     .then((r) => {
       if (r.status === 200) {
-        return r.json();
+        if (r.headers.get('content-type') === 'application/json') {
+          return r.json();
+        }
+        return r.text();
       }
     })
     .catch((e) => null);

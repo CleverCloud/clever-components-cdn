@@ -1,5 +1,6 @@
 import { loadComponents, REQUEST_PATH_JS } from '../src/load-components.js';
 import { getFile } from '../src/common.js';
+import { loadStyles, REQUEST_PATH_CSS } from '../src/load-styles.js';
 
 function createResponse (rawResponse) {
   return new Response(rawResponse.body, {
@@ -15,6 +16,11 @@ export default {
 
     if (url.pathname === REQUEST_PATH_JS) {
       const response = await loadComponents(request, getFile);
+      return createResponse(response);
+    }
+
+    if (url.pathname === REQUEST_PATH_CSS) {
+      const response = await loadStyles(request, getFile);
       return createResponse(response);
     }
 

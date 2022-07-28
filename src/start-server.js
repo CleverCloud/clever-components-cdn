@@ -1,5 +1,6 @@
 import Hapi from '@hapi/hapi';
 import { loadComponents, REQUEST_PATH_JS } from './load-components.js';
+import { loadStyles, REQUEST_PATH_CSS } from './load-styles.js';
 import { getFile } from './common.js';
 
 const { PORT = 8080 } = process.env;
@@ -56,6 +57,19 @@ async function startServer () {
 
       const request = createRequestFromHapi(hapiRequest, server.info.uri);
       const response = await loadComponents(request, getFile);
+      const hapiResponse = createHapiResponse(response, h);
+
+      return hapiResponse;
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: REQUEST_PATH_CSS,
+    handler: async function (hapiRequest, h) {
+
+      const request = createRequestFromHapi(hapiRequest, server.info.uri);
+      const response = await loadStyles(request, getFile);
       const hapiResponse = createHapiResponse(response, h);
 
       return hapiResponse;
