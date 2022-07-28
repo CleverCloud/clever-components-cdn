@@ -69,6 +69,18 @@ describe('loadComponents()', () => {
       assertResponse(response, 200, JS, MAX_AGE_ONE_YEAR);
       expectLines(response.body, 0, 1).to.equal('// VERSION: 7.2.1');
     });
+
+    it('error 404 if version cannot be found', async () => {
+      const response = await testLoadComponents('1.50.50', 'en', 'cc-toggle');
+      assertResponse(response, 404, JS, MAX_AGE_ZERO);
+      expectLines(response.body, 0, 1).to.equal(`console.warn('Unknown version');`);
+    });
+
+    it('error 404 if version is lower than first one supported by the smart CDN', async () => {
+      const response = await testLoadComponents('3.0.0', 'en', 'cc-toggle');
+      assertResponse(response, 404, JS, MAX_AGE_ZERO);
+      expectLines(response.body, 0, 1).to.equal(`console.warn('This version is too old to be available on the CDN');`);
+    });
   });
 
   describe('lang', () => {
@@ -91,7 +103,7 @@ describe('loadComponents()', () => {
       expectLines(response.body, 1, 2).to.equal(`// LANG: fr`);
     });
 
-    it('error 40x if lang cannot be found', async () => {
+    it('error 404 if lang cannot be found', async () => {
       const response = await testLoadComponents('9.0.0', 'es', 'cc-toggle');
       assertResponse(response, 404, JS, MAX_AGE_ZERO);
       expect(response.body).to.equal(dedent`
@@ -197,6 +209,14 @@ describe('loadComponents()', () => {
         console.warn('Unknown components: cc-foo, cc-bar');
       `);
     });
+
+    it('warning if all unknown components', async () => {
+      const response = await testLoadComponents('9.0.0', null, 'cc-foo,cc-bar');
+      assertResponse(response, 200, JS, MAX_AGE_ONE_YEAR);
+      expectLines(response.body, 2).to.equal(dedent`
+      console.warn('Unknown components: cc-foo, cc-bar');
+    `);
+    });
   });
 
   describe('magic mode', () => {
@@ -211,6 +231,30 @@ describe('loadComponents()', () => {
 
       assertResponse(response, 200, JS, MAX_AGE_ZERO);
       expectLines(response.body, 0, 1).to.equal(`// MAGIC MODE (don't use this in production)`);
+    });
+  });
+
+  describe('general errors', () => {
+
+    it('error 500 if versions-list.json cannot be retrieved', async () => {
+      const response = await testLoadComponents('9.0.0', null, 'cc-toggle', (pathname) => {
+        if (pathname === 'versions-list.json') {
+          return null;
+        }
+      });
+      expect(response.status).to.equal(500);
+      expect(response.body).to.equal('');
+    });
+
+    it('error 500 if deps-manifest-x.y.z.json cannot be retrieved', async () => {
+      const response = await testLoadComponents('9.0.0', null, 'cc-toggle', (pathname) => {
+        if (pathname === 'deps-manifest-9.0.0.json') {
+          return null;
+        }
+        return getFileMock(pathname);
+      });
+      expect(response.status).to.equal(500);
+      expect(response.body).to.equal('');
     });
   });
 });

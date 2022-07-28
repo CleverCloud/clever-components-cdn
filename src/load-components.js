@@ -23,6 +23,20 @@ export async function loadComponents (request, getFile) {
   }
 
   const version = getVersion(versionsList, url.searchParams.get('version'));
+  if (version.resolved == null) {
+    return {
+      status: 404,
+      body: `console.warn('Unknown version');`,
+      headers: getHeaders({ type: JS, maxAge: 0 }),
+    };
+  }
+  if (!version.isAvailableOnCdn) {
+    return {
+      status: 404,
+      body: `console.warn('This version is too old to be available on the CDN');`,
+      headers: getHeaders({ type: JS, maxAge: 0 }),
+    };
+  }
 
   const depsManifest = await getFile(`deps-manifest-${version.resolved}.json`, CDN_HOST);
   if (depsManifest == null) {
@@ -90,14 +104,6 @@ function getFiles (depsManifest, components) {
 
 function getResponse (version, translation, files) {
 
-  if (version.resolved == null) {
-    return {
-      status: 400,
-      body: `console.warn('Unknown version');`,
-      headers: getHeaders({ type: JS, maxAge: 0 }),
-    };
-  }
-
   const versionComment = `// VERSION: ${version.resolved}`;
 
   if (translation.lang == null) {
@@ -115,7 +121,7 @@ function getResponse (version, translation, files) {
   const headers = getHeaders({ type: JS, maxAge });
 
   const langComment = `// LANG: ${translation.lang}`;
-  const noComponentsWarning = (files.paths.length === 0)
+  const noComponentsWarning = (files.paths.length === 0 && files.unknownIds.length === 0)
     ? `console.warn('No components to load');`
     : '';
 

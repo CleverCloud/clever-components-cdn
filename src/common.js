@@ -1,7 +1,10 @@
-import { maxSatisfying } from 'es-semver';
+import { gte, maxSatisfying } from 'es-semver';
 
 export const CDN_HOST = 'https://components.clever-cloud.com';
 export const ONE_YEAR = 365 * 24 * 60 * 60;
+
+// Before this version, the assets aren't available on the CDN
+const MINIMUM_VERSION_AVAILABLE_ON_CDN = '5.3.1';
 
 /**
  * @param {String} path
@@ -10,11 +13,12 @@ export const ONE_YEAR = 365 * 24 * 60 * 60;
  */
 export function getFile (path, origin) {
   return fetch(new URL(path, origin).toString())
-    .then((r) => r.json())
-    .catch((e) => {
-      console.error(e);
-      return null;
-    });
+    .then((r) => {
+      if (r.status === 200) {
+        return r.json();
+      }
+    })
+    .catch((e) => null);
 }
 
 // Resolve latest possible version from versions list
@@ -22,9 +26,13 @@ export function getVersion (versionsList, requestedVersion) {
   // This code allows all the possible semver specifiers
   // We'll only test and document the short and simple use cases
   const resolvedVersion = maxSatisfying(versionsList, requestedVersion || '*');
+  const isAvailableOnCdn = (resolvedVersion != null)
+    ? gte(resolvedVersion, MINIMUM_VERSION_AVAILABLE_ON_CDN)
+    : false;
   return {
     requested: requestedVersion,
     resolved: resolvedVersion,
+    isAvailableOnCdn,
   };
 }
 
