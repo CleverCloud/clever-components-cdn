@@ -34,6 +34,8 @@ Once you're logged in, you can deploy to the staging environment with this comma
 wrangler publish --env staging
 ```
 
+The staging is deployed to this URL: https://staging-components.clever-cloud.com/
+
 ### Production
 
 Once you tested your worker on the staging environment, you can deploy it to production with this command:
@@ -42,6 +44,8 @@ Once you tested your worker on the staging environment, you can deploy it to pro
 # Don't forget to run this from the cf-worker directory
 wrangler publish --env production
 ```
+
+The production is deployed to this URL: https://components.clever-cloud.com/
 
 ## Configuration
 
