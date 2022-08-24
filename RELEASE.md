@@ -49,4 +49,4 @@ The production is deployed to this URL: https://components.clever-cloud.com/
 
 ## Configuration
 
-Most of the condiguration (environment variables or routes) are in the wrangler config file at `cf-worker/wrangler.toml`.
+Most of the configuration (environment variables or routes) are in the wrangler config file at `cf-worker/wrangler.toml`.
