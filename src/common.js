@@ -1,6 +1,5 @@
 import { gte, maxSatisfying } from 'es-semver';
 
-export const CDN_HOST = 'https://components.clever-cloud.com';
 export const ONE_YEAR = 365 * 24 * 60 * 60;
 
 // Before this version, the assets aren't available on the CDN

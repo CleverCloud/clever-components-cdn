@@ -1,4 +1,4 @@
-import { CDN_HOST, getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
+import { getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
 
 export const REQUEST_PATH_CSS = '/styles.css';
 const CSS = 'text/css';
@@ -6,13 +6,14 @@ const CSS = 'text/css';
 /**
  * @param {Request} request
  * @param {Function} getFile
+ * @param {String} cdnHost
  * @returns {Promise<Response>}
  */
-export async function loadStyles (request, getFile) {
+export async function loadStyles (request, getFile, cdnHost) {
 
   const url = new URL(request.url);
 
-  const versionsList = await getFile(`versions-list.json`, CDN_HOST);
+  const versionsList = await getFile(`versions-list.json`, cdnHost);
   if (versionsList == null) {
     console.error('Cannot fetch versions-list.json');
     return { status: 500, body: '' };
@@ -34,16 +35,16 @@ export async function loadStyles (request, getFile) {
     };
   }
 
-  const depsManifest = await getFile(`deps-manifest-${version.resolved}.json`, CDN_HOST);
+  const depsManifest = await getFile(`deps-manifest-${version.resolved}.json`, cdnHost);
   if (depsManifest == null) {
     console.error(`Cannot fetch deps-manifest-${version.resolved}.json`);
     return { status: 500, body: '' };
   }
 
-  return getResponse(version, depsManifest, getFile);
+  return getResponse(version, depsManifest, getFile, cdnHost);
 }
 
-export async function getResponse (version, depsManifest, getFile) {
+export async function getResponse (version, depsManifest, getFile, cdnHost) {
 
   if (depsManifest.manifestVersion !== '2') {
     return {
@@ -58,7 +59,7 @@ export async function getResponse (version, depsManifest, getFile) {
   let stylesBlocks;
   try {
     stylesBlocks = await Promise.all(depsManifest.styles.map((s) => {
-      return getFile(s.path, CDN_HOST);
+      return getFile(s.path, cdnHost);
     }));
   }
   catch (e) {

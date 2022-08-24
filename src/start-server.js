@@ -3,7 +3,10 @@ import { loadComponents, REQUEST_PATH_JS } from './load-components.js';
 import { loadStyles, REQUEST_PATH_CSS } from './load-styles.js';
 import { getFile } from './common.js';
 
-const { PORT = 8080 } = process.env;
+const {
+  PORT = 8080,
+  CDN_HOST,
+} = process.env;
 
 /**
  * @param {Object} hapiRequest
@@ -56,7 +59,7 @@ async function startServer () {
     handler: async function (hapiRequest, h) {
 
       const request = createRequestFromHapi(hapiRequest, server.info.uri);
-      const response = await loadComponents(request, getFile);
+      const response = await loadComponents(request, getFile, CDN_HOST);
       const hapiResponse = createHapiResponse(response, h);
 
       return hapiResponse;
@@ -69,7 +72,7 @@ async function startServer () {
     handler: async function (hapiRequest, h) {
 
       const request = createRequestFromHapi(hapiRequest, server.info.uri);
-      const response = await loadStyles(request, getFile);
+      const response = await loadStyles(request, getFile, CDN_HOST);
       const hapiResponse = createHapiResponse(response, h);
 
       return hapiResponse;

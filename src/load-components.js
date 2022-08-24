@@ -1,4 +1,4 @@
-import { CDN_HOST, getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
+import { getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
 import { dedent } from './dedent.js';
 
 export const REQUEST_PATH_JS = '/load.js';
@@ -10,13 +10,14 @@ const MAGIC_MODE_VALUE = 'dont-use-this-in-prod';
 /**
  * @param {Request} request
  * @param {Function} getFile
+ * @param {String} cdnHost
  * @returns {Promise<Response>}
  */
-export async function loadComponents (request, getFile) {
+export async function loadComponents (request, getFile, cdnHost) {
 
   const url = new URL(request.url);
 
-  const versionsList = await getFile(`versions-list.json`, CDN_HOST);
+  const versionsList = await getFile(`versions-list.json`, cdnHost);
   if (versionsList == null) {
     console.error('Cannot find versions-list.json');
     return { status: 500, body: '' };
@@ -38,7 +39,7 @@ export async function loadComponents (request, getFile) {
     };
   }
 
-  const depsManifest = await getFile(`deps-manifest-${version.resolved}.json`, CDN_HOST);
+  const depsManifest = await getFile(`deps-manifest-${version.resolved}.json`, cdnHost);
   if (depsManifest == null) {
     console.error(`Cannot find deps-manifest-${version.resolved}.json`);
     return { status: 500, body: '' };

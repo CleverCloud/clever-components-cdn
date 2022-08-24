@@ -10,17 +10,17 @@ function createResponse (rawResponse) {
 }
 
 export default {
-  async fetch (request) {
+  async fetch (request, env) {
 
     const url = new URL(request.url);
 
     if (url.pathname === REQUEST_PATH_JS) {
-      const response = await loadComponents(request, getFile);
+      const response = await loadComponents(request, getFile, env.CDN_HOST);
       return createResponse(response);
     }
 
     if (url.pathname === REQUEST_PATH_CSS) {
-      const response = await loadStyles(request, getFile);
+      const response = await loadStyles(request, getFile, env.CDN_HOST);
       return createResponse(response);
     }
 
