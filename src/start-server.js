@@ -1,8 +1,51 @@
 import Hapi from '@hapi/hapi';
-import superagent from 'superagent';
-import { handleLoadRequest } from './load-components.js';
+import { loadComponents, REQUEST_PATH_JS } from './load-components.js';
+import { loadStyles, REQUEST_PATH_CSS } from './load-styles.js';
+import { getFile } from './common.js';
 
-const { PORT = 8080 } = process.env;
+const {
+  PORT = 8080,
+  CDN_HOST,
+} = process.env;
+
+/**
+ * @param {Object} hapiRequest
+ * @param {String} hapiRequest.path
+ * @param {Object} hapiRequest.query
+ * @param {String} hapiRequest.method
+ * @param {Object} hapiRequest.headers
+ * @param {string} serverUri
+ * @returns {Request}
+ */
+function createRequestFromHapi (hapiRequest, serverUri) {
+  const url = new URL(hapiRequest.path, serverUri);
+  for (const [name, value] of Object.entries(hapiRequest.query)) {
+    url.searchParams.set(name, value);
+  }
+  const request = new Request(url.toString(), {
+    method: hapiRequest.method,
+    headers: hapiRequest.headers,
+  });
+  return request;
+}
+
+/**
+ * @param {Response} response
+ * @param {Object} h - the Hapi.js response helper
+ * @returns {*} a Hapi.js response object
+ */
+function createHapiResponse (response, h) {
+
+  const hapiResponse = h
+    .response(response.body)
+    .code(response.status);
+
+  for (const [name, value] of Object.entries(response.headers ?? {})) {
+    hapiResponse.header(name, value);
+  }
+
+  return hapiResponse;
+}
 
 async function startServer () {
 
@@ -12,37 +55,27 @@ async function startServer () {
 
   server.route({
     method: 'GET',
-    path: '/load.js',
-    handler: async function (request, h) {
+    path: REQUEST_PATH_JS,
+    handler: async function (hapiRequest, h) {
 
-      return handleLoadRequest({
+      const request = createRequestFromHapi(hapiRequest, server.info.uri);
+      const response = await loadComponents(request, getFile, CDN_HOST);
+      const hapiResponse = createHapiResponse(response, h);
 
-        getQueryParam (name) {
-          return request.query[name];
-        },
+      return hapiResponse;
+    },
+  });
 
-        getJson (path, origin) {
-          return superagent.get(new URL(path, origin))
-            .then((r) => r.body)
-            .catch((e) => {
-              console.error(e);
-              return null;
-            });
-        },
+  server.route({
+    method: 'GET',
+    path: REQUEST_PATH_CSS,
+    handler: async function (hapiRequest, h) {
 
-        sendResponse (response) {
+      const request = createRequestFromHapi(hapiRequest, server.info.uri);
+      const response = await loadStyles(request, getFile, CDN_HOST);
+      const hapiResponse = createHapiResponse(response, h);
 
-          const hapiResponse = h
-            .response(response.body)
-            .code(response.status);
-
-          for (const [name, value] of Object.entries(response.headers)) {
-            hapiResponse.header(name, value);
-          }
-
-          return hapiResponse;
-        },
-      });
+      return hapiResponse;
     },
   });
 

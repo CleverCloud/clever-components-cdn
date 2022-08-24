@@ -1,51 +1,63 @@
-import { maxSatisfying } from 'es-semver';
+import { getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
+import { dedent } from './dedent.js';
 
-const CDN_HOST = 'https://components.clever-cloud.com';
-const ONE_YEAR = 365 * 24 * 60 * 60;
+export const REQUEST_PATH_JS = '/load.js';
+const JS = 'application/javascript';
 
 const MAGIC_MODE_NAME = 'magic-mode';
 const MAGIC_MODE_VALUE = 'dont-use-this-in-prod';
 
-export async function handleLoadRequest ({ getQueryParam, getJson, sendResponse }) {
+/**
+ * @param {Request} request
+ * @param {Function} getFile
+ * @param {String} cdnHost
+ * @returns {Promise<Response>}
+ */
+export async function loadComponents (request, getFile, cdnHost) {
 
-  const versionsList = await getJson(`versions-list.json`, CDN_HOST);
+  const url = new URL(request.url);
+
+  const versionsList = await getFile(`versions-list.json`, cdnHost);
   if (versionsList == null) {
-    return sendResponse({ body: '', status: 500 });
+    console.error('Cannot find versions-list.json');
+    return { status: 500, body: '' };
   }
 
-  const version = getVersion(versionsList, getQueryParam('version'));
+  const version = getVersion(versionsList, url.searchParams.get('version'));
+  if (version.resolved == null) {
+    return {
+      status: 404,
+      body: `console.warn('Unknown version');`,
+      headers: getHeaders({ type: JS, maxAge: 0 }),
+    };
+  }
+  if (!version.isAvailableOnCdn) {
+    return {
+      status: 404,
+      body: `console.warn('This version is too old to be available on the CDN');`,
+      headers: getHeaders({ type: JS, maxAge: 0 }),
+    };
+  }
 
-  const depsManifest = await getJson(`deps-manifest-${version.resolved}.json`, CDN_HOST);
+  const depsManifest = await getFile(`deps-manifest-${version.resolved}.json`, cdnHost);
   if (depsManifest == null) {
-    return sendResponse({ body: '', status: 500 });
+    console.error(`Cannot find deps-manifest-${version.resolved}.json`);
+    return { status: 500, body: '' };
   }
 
-  const translation = getTranslation(depsManifest, getQueryParam('lang'));
+  const translation = getTranslation(depsManifest, url.searchParams.get('lang'));
 
-  if (getQueryParam(MAGIC_MODE_NAME) === MAGIC_MODE_VALUE) {
-    const magicModeResponse = getMagicModeResponse(version.resolved, translation.lang);
-    return sendResponse(magicModeResponse);
+  if (url.searchParams.get(MAGIC_MODE_NAME) === MAGIC_MODE_VALUE) {
+    return getMagicModeResponse(version.resolved, translation.lang);
   }
 
-  const files = getFiles(depsManifest, getQueryParam('components'));
-  const response = getResponse(version, translation, files);
+  const files = getFiles(depsManifest, url.searchParams.get('components'));
 
-  return sendResponse(response);
-}
-
-// Resolve latest possible version from versions list
-export function getVersion (versionsList, requestedVersion) {
-  // This code allows all the possible semver specifiers
-  // We'll only test and document the short and simple use cases
-  const resolvedVersion = maxSatisfying(versionsList, requestedVersion || '*');
-  return {
-    requested: requestedVersion,
-    resolved: resolvedVersion,
-  };
+  return getResponse(version, translation, files);
 }
 
 // Resolve translation file for given lang (defaults to "en")
-export function getTranslation (depsManifest, lang) {
+function getTranslation (depsManifest, lang) {
   if (lang == null) {
     return getTranslation(depsManifest, 'en');
   }
@@ -60,8 +72,8 @@ export function getTranslation (depsManifest, lang) {
 
 // Resolve paths to load from list of component IDs (coma separated string)
 // If the i18n file is needed, its path is provided on `i18nPath` but won't be part of the list of `paths`
-// This funciton also lists the unknown IDs
-export function getFiles (depsManifest, components) {
+// This function also lists the unknown IDs
+function getFiles (depsManifest, components) {
 
   const componentIds = (typeof components === 'string')
     ? components.split(',')
@@ -91,49 +103,26 @@ export function getFiles (depsManifest, components) {
   return { paths: pathsWithoutI18n, i18nPath, unknownIds };
 }
 
-const HEADERS_JS_CORS_NOCACHE = {
-  'content-type': 'application/javascript',
-  'access-control-allow-origin': '*',
-  'cache-control': 'public,max-age=0',
-};
-
-const HEADERS_JS_CORS_ONEYEARCACHE = {
-  'content-type': 'application/javascript',
-  'access-control-allow-origin': '*',
-  'cache-control': `public,max-age=${ONE_YEAR}`,
-};
-
-export function getResponse (version, translation, files) {
-
-  if (version.resolved == null) {
-    return {
-      status: 400,
-      body: getBody([
-        `console.warn('Unknown version');`,
-      ]),
-      headers: HEADERS_JS_CORS_NOCACHE,
-    };
-  }
+function getResponse (version, translation, files) {
 
   const versionComment = `// VERSION: ${version.resolved}`;
 
   if (translation.lang == null) {
     return {
-      status: 400,
+      status: 404,
       body: getBody([
         versionComment,
         `console.warn('Unknown lang');`,
       ]),
-      headers: HEADERS_JS_CORS_NOCACHE,
+      headers: getHeaders({ type: JS, maxAge: 0 }),
     };
   }
 
-  const headers = (version.requested === version.resolved)
-    ? HEADERS_JS_CORS_ONEYEARCACHE
-    : HEADERS_JS_CORS_NOCACHE;
+  const maxAge = (version.requested === version.resolved) ? ONE_YEAR : 0;
+  const headers = getHeaders({ type: JS, maxAge });
 
   const langComment = `// LANG: ${translation.lang}`;
-  const noComponentsWarning = (files.paths.length === 0)
+  const noComponentsWarning = (files.paths.length === 0 && files.unknownIds.length === 0)
     ? `console.warn('No components to load');`
     : '';
 
@@ -156,12 +145,6 @@ export function getResponse (version, translation, files) {
     ]),
     headers,
   };
-}
-
-function getBody (lines) {
-  return lines
-    .filter((a) => a !== '')
-    .join('\n');
 }
 
 function getLoadStatements (files) {
@@ -200,46 +183,44 @@ function getI18nStatements (translation, files) {
 }
 
 // NOTE: Right now we filter by "cc-" prefix
-export function getMagicModeResponse (version, lang) {
+function getMagicModeResponse (version, lang) {
 
-  const body = `
-
-// MAGIC MODE (don't use this in production)
-// Components will be loaded automatically on load and on DOM mutations
-function loadComponents(nodes) {
-  
-  const componentNameList = nodes
-    .filter(({ tagName }) => tagName != null)
-    .map(({ tagName }) => tagName.toLowerCase())
-    .filter((tagName) => tagName.startsWith('cc-'))
-    .join(',');
-  
-  if (componentNameList !== '') {
-    const importUrl = new URL('./load.js', import.meta.url);
-    importUrl.searchParams.set('version', '${version}');
-    importUrl.searchParams.set('lang', '${lang}');
-    importUrl.searchParams.set('components', componentNameList);
-    import(importUrl);
-  }
-}
-
-const root = document.querySelector('html');
-const observer = new MutationObserver((mutationsList) => {
-  const nodes = mutationsList
-    .filter(({ type }) => type === 'childList')
-    .flatMap(({ addedNodes }) => Array.from(addedNodes));
-  loadComponents(nodes);
-});
-  
-observer.observe(root, { subtree: true, childList: true });
-const allNodes = Array.from(document.querySelectorAll('*'));
-loadComponents(allNodes);
-  
+  const body = dedent`
+    // MAGIC MODE (don't use this in production)
+    // Components will be loaded automatically on load and on DOM mutations
+    function loadComponents(nodes) {
+      
+      const componentNameList = nodes
+        .filter(({ tagName }) => tagName != null)
+        .map(({ tagName }) => tagName.toLowerCase())
+        .filter((tagName) => tagName.startsWith('cc-'))
+        .join(',');
+      
+      if (componentNameList !== '') {
+        const importUrl = new URL('./load.js', import.meta.url);
+        importUrl.searchParams.set('version', '${version}');
+        importUrl.searchParams.set('lang', '${lang}');
+        importUrl.searchParams.set('components', componentNameList);
+        import(importUrl);
+      }
+    }
+    
+    const root = document.querySelector('html');
+    const observer = new MutationObserver((mutationsList) => {
+      const nodes = mutationsList
+        .filter(({ type }) => type === 'childList')
+        .flatMap(({ addedNodes }) => Array.from(addedNodes));
+      loadComponents(nodes);
+    });
+      
+    observer.observe(root, { subtree: true, childList: true });
+    const allNodes = Array.from(document.querySelectorAll('*'));
+    loadComponents(allNodes);
   `;
 
   return {
     status: 200,
-    body: body.trim(),
-    headers: HEADERS_JS_CORS_NOCACHE,
+    body,
+    headers: getHeaders({ type: JS, maxAge: 0 }),
   };
 }

@@ -1,0 +1,21 @@
+main = "index.js"
+compatibility_date = "2022-08-23"
+workers_dev = false
+
+[vars]
+CDN_HOST = "https://components.clever-cloud.com"
+
+[env.production]
+name = "components-smart-cdn"
+routes = ["components.clever-cloud.com/load.js*", "components.clever-cloud.com/styles.css*"]
+
+[env.production.vars]
+CDN_HOST = "https://components.clever-cloud.com"
+
+[env.staging]
+name = "components-smart-cdn-staging"
+routes = ["staging-components.clever-cloud.com/load.js*", "staging-components.clever-cloud.com/styles.css*"]
+
+[env.staging.vars]
+CDN_HOST = "https://staging-components.clever-cloud.com"
+

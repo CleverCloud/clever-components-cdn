@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "cf-worker",
+  "name": "components-smart-cdn",
   "main": "index.js",
   "author": "Hubert SABLONNIÈRE <hubert.sablonniere@gmail.com>",
   "license": "MIT"
