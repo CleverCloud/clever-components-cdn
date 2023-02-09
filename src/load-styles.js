@@ -1,4 +1,4 @@
-import { getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
+import { getBody, getHeaders, ONE_YEAR, resolveSemverVersion, resolveVersion } from './common.js';
 
 export const REQUEST_PATH_CSS = '/styles.css';
 const CSS = 'text/css';
@@ -13,24 +13,24 @@ export async function loadStyles (request, getFile, cdnHost) {
 
   const url = new URL(request.url);
 
-  const versionsList = await getFile(`versions-list.json`, cdnHost);
-  if (versionsList == null) {
-    console.error('Cannot fetch versions-list.json');
+  const manifest = await getFile('manifest.json', cdnHost);
+  if (manifest == null) {
+    console.error(`Cannot find manifest.json`);
     return { status: 500, body: '' };
   }
 
-  const version = getVersion(versionsList, url.searchParams.get('version'));
+  const versionsList = manifest.entries.map((e) => e.name);
+  console.log({ versionsList });
+
+  const requestedVersion = url.searchParams.get('version');
+  const version = manifest.semver
+    ? resolveSemverVersion(versionsList, requestedVersion)
+    : resolveVersion(versionsList, requestedVersion);
+
   if (version.resolved == null) {
     return {
       status: 404,
       body: '/* Unknown version */',
-      headers: getHeaders({ type: CSS, maxAge: 0 }),
-    };
-  }
-  if (!version.isAvailableOnCdn) {
-    return {
-      status: 404,
-      body: `/* This version is too old to be available on the CDN /*`,
       headers: getHeaders({ type: CSS, maxAge: 0 }),
     };
   }
@@ -68,7 +68,7 @@ export async function getResponse (version, depsManifest, getFile, cdnHost) {
 
   const headers = getHeaders({
     type: CSS,
-    maxAge: (version.requested === version.resolved) ? ONE_YEAR : 0,
+    maxAge: (version.immutable && version.requested === version.resolved) ? ONE_YEAR : 0,
   });
 
   return {

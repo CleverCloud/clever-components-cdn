@@ -34,7 +34,25 @@ Once you're logged in, you can deploy to the staging environment with this comma
 wrangler publish --env staging
 ```
 
-The staging is deployed to this URL: https://staging-components.clever-cloud.com/
+### Staging
+
+We have a preview environement to publish WIP components and use them through the CDN before reaching production.
+
+To deploy the to the preview environment, you will need to be authorized by an admin of the project.
+Then you will need to authenticate with wrangler:
+
+```bash
+wrangler login
+```
+
+Once you're logged in, you can deploy to the preview environment with this command:
+
+```bash
+# Don't forget to run this from the cf-worker directory
+wrangler publish --env preview
+```
+
+The preview is deployed to this URL: https://preview-components.clever-cloud.com/
 
 ### Production
 

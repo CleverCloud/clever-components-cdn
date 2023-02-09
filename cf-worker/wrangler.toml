@@ -19,3 +19,10 @@ routes = ["staging-components.clever-cloud.com/load.js*", "staging-components.cl
 [env.staging.vars]
 CDN_HOST = "https://staging-components.clever-cloud.com"
 
+[env.preview]
+name = "components-smart-cdn-preview"
+routes = ["preview-components.clever-cloud.com/load.js*", "preview-components.clever-cloud.com/styles.css*"]
+
+[env.preview.vars]
+CDN_HOST = "https://preview-components.clever-cloud.com"
+
