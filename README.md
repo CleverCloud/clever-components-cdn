@@ -27,4 +27,4 @@ This project provides the two dynamic entrypoints of the system:
 
 ## How to use this smart CDN
 
-You can find docs about usage of this smart CDN on the clever components' site: https://www.clever-cloud.com/doc/clever-components/?path=/docs/%F0%9F%93%8C-docs-how-to-load-components-via-smart-cdn--page
+You can find docs about usage of this smart CDN on the clever components' site: https://www.clever-cloud.com/doc/clever-components/?path=/docs/%F0%9F%93%8C-docs-how-to-load-components-via-our-smart-cdn--page
