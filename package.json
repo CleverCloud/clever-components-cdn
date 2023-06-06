@@ -1,7 +1,7 @@
 {
   "name": "@clevercloud/components-cdn",
   "version": "0.0.1",
-  "description": "Small endpoint to serve Clever Cloud components dynamicly.",
+  "description": "Small endpoint to serve Clever Cloud components dynamically.",
   "license": "Apache-2.0",
   "type": "module",
   "repository": {
