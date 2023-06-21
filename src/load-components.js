@@ -1,4 +1,4 @@
-import { getBody, getHeaders, getVersion, ONE_YEAR } from './common.js';
+import { getBody, getHeaders, ONE_YEAR, resolveSemverVersion, resolveVersion } from './common.js';
 import { dedent } from './dedent.js';
 
 export const REQUEST_PATH_JS = '/load.js';
@@ -17,24 +17,22 @@ export async function loadComponents (request, getFile, cdnHost) {
 
   const url = new URL(request.url);
 
-  const versionsList = await getFile(`versions-list.json`, cdnHost);
-  if (versionsList == null) {
-    console.error('Cannot find versions-list.json');
+  const manifest = await getFile('manifest.json', cdnHost);
+  if (manifest == null) {
+    console.error(`Cannot find manifest.json`);
     return { status: 500, body: '' };
   }
 
-  const version = getVersion(versionsList, url.searchParams.get('version'));
+  const versionsList = manifest.entries.map((e) => e.name);
+  const requestedVersion = url.searchParams.get('version');
+  const version = manifest.semver
+    ? resolveSemverVersion(versionsList, requestedVersion)
+    : resolveVersion(versionsList, requestedVersion);
+
   if (version.resolved == null) {
     return {
       status: 404,
       body: `console.warn('Unknown version');`,
-      headers: getHeaders({ type: JS, maxAge: 0 }),
-    };
-  }
-  if (!version.isAvailableOnCdn) {
-    return {
-      status: 404,
-      body: `console.warn('This version is too old to be available on the CDN');`,
       headers: getHeaders({ type: JS, maxAge: 0 }),
     };
   }
@@ -118,7 +116,7 @@ function getResponse (version, translation, files) {
     };
   }
 
-  const maxAge = (version.requested === version.resolved) ? ONE_YEAR : 0;
+  const maxAge = (version.immutable && version.requested === version.resolved) ? ONE_YEAR : 0;
   const headers = getHeaders({ type: JS, maxAge });
 
   const langComment = `// LANG: ${translation.lang}`;
